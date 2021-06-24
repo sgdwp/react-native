@@ -114,9 +114,11 @@ task prepareHermes(dependsOn: createNativeDepsDirectories, type: Copy) {
 
     def soFiles = zipTree(hermesAAR).matching({ it.include "**/*.so" })
 
-    from soFiles
-    from "src/main/jni/first-party/hermes/Android.mk"
-    into "$thirdPartyNdkDir/hermes"
+    copy {
+        from soFiles
+        from "src/main/jni/first-party/hermes/Android.mk"
+        into "$thirdPartyNdkDir/hermes"
+    }
 }
 
 task downloadGlog(dependsOn: createNativeDepsDirectories, type: Download) {
@@ -395,6 +397,10 @@ android {
         versionName("1.0")
 
         consumerProguardFiles("proguard-rules.pro")
+
+        ndk {
+            moduleName("reactnativejni")
+        }
 
         buildConfigField("boolean", "IS_INTERNAL_BUILD", "false")
         buildConfigField("int", "EXOPACKAGE_FLAGS", "0")
