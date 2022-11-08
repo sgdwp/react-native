@@ -25,6 +25,11 @@
 @property (nonatomic, copy) RCTDirectEventBlock onShow;
 @property (nonatomic, assign) BOOL visible;
 
+// Android only
+@property (nonatomic, assign) BOOL statusBarTranslucent;
+@property (nonatomic, assign) BOOL hardwareAccelerated;
+@property (nonatomic, assign) BOOL animated;
+
 @property (nonatomic, copy) NSNumber *identifier;
 
 @property (nonatomic, weak) id<RCTModalHostViewInteractor> delegate;
@@ -33,7 +38,7 @@
 @property (nonatomic, copy) RCTDirectEventBlock onOrientationChange;
 
 // Fabric only
-@property (nonatomic, copy) RCTBubblingEventBlock onDismiss;
+@property (nonatomic, copy) RCTDirectEventBlock onDismiss;
 
 - (instancetype)initWithBridge:(RCTBridge *)bridge NS_DESIGNATED_INITIALIZER;
 

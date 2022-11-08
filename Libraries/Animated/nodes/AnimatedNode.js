@@ -10,10 +10,13 @@
 
 'use strict';
 
-const NativeAnimatedHelper = require('../NativeAnimatedHelper');
+import type {PlatformConfig} from '../AnimatedPlatformConfig';
+
+import ReactNativeFeatureFlags from '../../ReactNative/ReactNativeFeatureFlags';
+import NativeAnimatedHelper from '../NativeAnimatedHelper';
+import invariant from 'invariant';
 
 const NativeAnimatedAPI = NativeAnimatedHelper.API;
-const invariant = require('invariant');
 
 type ValueListenerCallback = (state: {value: number, ...}) => mixed;
 
@@ -21,11 +24,15 @@ let _uniqueId = 1;
 
 // Note(vjeux): this would be better as an interface but flow doesn't
 // support them yet
-class AnimatedNode {
+export default class AnimatedNode {
   _listeners: {[key: string]: ValueListenerCallback, ...};
+  _platformConfig: ?PlatformConfig;
   __nativeAnimatedValueListener: ?any;
   __attach(): void {}
   __detach(): void {
+    if (ReactNativeFeatureFlags.removeListenersOnDetach()) {
+      this.removeAllListeners();
+    }
     if (this.__isNative && this.__nativeTag != null) {
       NativeAnimatedHelper.API.dropAnimatedNode(this.__nativeTag);
       this.__nativeTag = undefined;
@@ -50,11 +57,12 @@ class AnimatedNode {
     this._listeners = {};
   }
 
-  __makeNative() {
+  __makeNative(platformConfig: ?PlatformConfig): void {
     if (!this.__isNative) {
       throw new Error('This node cannot be made a "native" animated node');
     }
 
+    this._platformConfig = platformConfig;
     if (this.hasListeners()) {
       this._startListeningToNativeValueUpdates();
     }
@@ -126,12 +134,12 @@ class AnimatedNode {
           if (data.tag !== this.__getNativeTag()) {
             return;
           }
-          this._onAnimatedValueUpdateReceived(data.value);
+          this.__onAnimatedValueUpdateReceived(data.value);
         },
       );
   }
 
-  _onAnimatedValueUpdateReceived(value: number) {
+  __onAnimatedValueUpdateReceived(value: number) {
     this.__callListeners(value);
   }
 
@@ -163,10 +171,11 @@ class AnimatedNode {
 
     if (this.__nativeTag == null) {
       this.__nativeTag = nativeTag;
-      NativeAnimatedHelper.API.createAnimatedNode(
-        nativeTag,
-        this.__getNativeConfig(),
-      );
+      const config = this.__getNativeConfig();
+      if (this._platformConfig) {
+        config.platformConfig = this._platformConfig;
+      }
+      NativeAnimatedHelper.API.createAnimatedNode(nativeTag, config);
       this.__shouldUpdateListenersForNewNativeTag = true;
     }
 
@@ -180,6 +189,11 @@ class AnimatedNode {
   toJSON(): any {
     return this.__getValue();
   }
-}
 
-module.exports = AnimatedNode;
+  __getPlatformConfig(): ?PlatformConfig {
+    return this._platformConfig;
+  }
+  __setPlatformConfig(platformConfig: ?PlatformConfig) {
+    this._platformConfig = platformConfig;
+  }
+}

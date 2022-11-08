@@ -8,12 +8,15 @@
  * @flow strict-local
  */
 
-import codegenNativeComponent from '../../Utilities/codegenNativeComponent';
 import type {HostComponent} from '../../Renderer/shims/ReactNativeTypes';
 import type {ViewProps} from '../View/ViewPropTypes';
 
+import codegenNativeComponent from '../../Utilities/codegenNativeComponent';
+
 type NativeProps = $ReadOnly<{|
   ...ViewProps,
+
+  removeClippedSubviews?: ?boolean,
 |}>;
 
 type NativeType = HostComponent<NativeProps>;

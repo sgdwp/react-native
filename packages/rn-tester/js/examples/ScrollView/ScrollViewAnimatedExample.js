@@ -10,6 +10,8 @@
 
 'use strict';
 
+import type AnimatedValue from 'react-native/Libraries/Animated/nodes/AnimatedValue';
+
 const React = require('react');
 const ReactNative = require('react-native');
 const {Component} = React;
@@ -17,14 +19,13 @@ const {StyleSheet, Text, View, Animated, Easing, TouchableOpacity, Dimensions} =
   ReactNative;
 
 class ScrollViewAnimatedExample extends Component<{...}> {
-  _scrollViewPos = new Animated.Value(0);
+  _scrollViewPos: AnimatedValue = new Animated.Value(0);
 
   startAnimation: () => void = () => {
     this._scrollViewPos.setValue(0);
     Animated.timing(this._scrollViewPos, {
       toValue: 100,
       duration: 10000,
-      // $FlowFixMe[method-unbinding]
       easing: Easing.linear,
       useNativeDriver: true,
     }).start();
@@ -33,16 +34,10 @@ class ScrollViewAnimatedExample extends Component<{...}> {
   render(): React.Node {
     const interpolated = this._scrollViewPos.interpolate({
       inputRange: [0, 1],
-      /* $FlowFixMe[speculation-ambiguous] (>=0.38.0) - Flow error detected
-       * during the deployment of v0.38.0. To see the error, remove this
-       * comment and run flow */
       outputRange: [0, 0.1],
     });
     const interpolated2 = this._scrollViewPos.interpolate({
       inputRange: [0, 1],
-      /* $FlowFixMe[speculation-ambiguous] (>=0.38.0) - Flow error detected
-       * during the deployment of v0.38.0. To see the error, remove this
-       * comment and run flow */
       outputRange: ['0deg', '1deg'],
     });
     return (

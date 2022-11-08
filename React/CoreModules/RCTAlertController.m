@@ -29,12 +29,23 @@
 
 - (void)show:(BOOL)animated completion:(void (^)(void))completion
 {
+  if (@available(iOS 13.0, *)) {
+    UIUserInterfaceStyle style =
+        RCTSharedApplication().delegate.window.overrideUserInterfaceStyle ?: UIUserInterfaceStyleUnspecified;
+    self.overrideUserInterfaceStyle = style;
+  }
   [self.alertWindow makeKeyAndVisible];
   [self.alertWindow.rootViewController presentViewController:self animated:animated completion:completion];
 }
 
 - (void)hide
 {
+  [_alertWindow setHidden:YES];
+
+  if (@available(iOS 13, *)) {
+    _alertWindow.windowScene = nil;
+  }
+
   _alertWindow = nil;
 }
 

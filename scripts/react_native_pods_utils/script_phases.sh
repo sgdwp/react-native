@@ -33,12 +33,11 @@ else
 fi
 
 find_node () {
-    # shellcheck disable=SC1091
-    source "$RCT_SCRIPT_RN_DIR/scripts/find-node.sh"
-
     NODE_BINARY="${NODE_BINARY:-$(command -v node || true)}"
     if [ -z "$NODE_BINARY" ]; then
-        error "error: Could not find node. Make sure it is in bash PATH or set the NODE_BINARY environment variable."
+        error "[Error] Could not find node. It looks like that the .xcode.env or .xcode.env.local " \
+"files are misconfigured. Please check that they are exporting a valid NODE_BINARY " \
+"variable, pointing to a node executable."
     fi
 }
 
@@ -75,7 +74,7 @@ generateCodegenSchemaFromJavaScript () {
         JS_SRCS=$(find "$PODS_TARGET_SRCROOT/$SRCS_DIR" -type f -name "$SRCS_PATTERN" -print0 | xargs -0)
         echo "$RCT_SCRIPT_FILE_LIST" >> "${SCRIPT_OUTPUT_FILE_0}" 2>&1
     else
-        JS_SRCS="$\{PODS_TARGET_SRCROOT\}/$SRCS_DIR"
+        JS_SRCS="$PODS_TARGET_SRCROOT/$SRCS_DIR"
         echo "$RCT_SCRIPT_JS_SRCS_DIR" >> "${SCRIPT_OUTPUT_FILE_0}" 2>&1
     fi
 
@@ -88,12 +87,12 @@ generateCodegenArtifactsFromSchema () {
     describe "Generating codegen artifacts from schema"
     pushd "$RN_DIR" >/dev/null || exit 1
         if [ "$RCT_SCRIPT_LIBRARY_TYPE" = "all" ]; then
-            runSpecCodegen "$TEMP_OUTPUT_DIR/$RCT_SCRIPT_CODEGEN_MODULE_DIR/$RCT_SCRIPT_LIBRARY_NAME" "modules"
-            runSpecCodegen "$TEMP_OUTPUT_DIR/$RCT_SCRIPT_CODEGEN_COMPONENT_DIR/$RCT_SCRIPT_LIBRARY_NAME" "components"
+            runSpecCodegen "$TEMP_OUTPUT_DIR" "modules"
+            runSpecCodegen "$TEMP_OUTPUT_DIR" "components"
         elif [ "$RCT_SCRIPT_LIBRARY_TYPE" = "components" ]; then
-            runSpecCodegen "$TEMP_OUTPUT_DIR/$RCT_SCRIPT_CODEGEN_COMPONENT_DIR/$RCT_SCRIPT_LIBRARY_NAME" "$RCT_SCRIPT_LIBRARY_TYPE"
+            runSpecCodegen "$TEMP_OUTPUT_DIR" "$RCT_SCRIPT_LIBRARY_TYPE"
         elif [ "$RCT_SCRIPT_LIBRARY_TYPE" = "modules" ]; then
-            runSpecCodegen "$TEMP_OUTPUT_DIR/$RCT_SCRIPT_CODEGEN_MODULE_DIR/$RCT_SCRIPT_LIBRARY_NAME" "$RCT_SCRIPT_LIBRARY_TYPE"
+            runSpecCodegen "$TEMP_OUTPUT_DIR" "$RCT_SCRIPT_LIBRARY_TYPE"
         fi
     popd >/dev/null || exit 1
 }
@@ -101,7 +100,7 @@ generateCodegenArtifactsFromSchema () {
 generateArtifacts () {
     describe "Generating codegen artifacts"
     pushd "$RCT_SCRIPT_RN_DIR" >/dev/null || exit 1
-        "$NODE_BINARY" "scripts/generate-artifacts.js" --path "$RCT_SCRIPT_APP_PATH" --outputPath "$TEMP_OUTPUT_DIR" --fabricEnabled "$RCT_SCRIPT_FABRIC_ENABLED" --configFileDir "$RCT_SCRIPT_CONFIG_FILE_DIR"
+        "$NODE_BINARY" "scripts/generate-codegen-artifacts.js" --path "$RCT_SCRIPT_APP_PATH" --outputPath "$TEMP_OUTPUT_DIR" --fabricEnabled "$RCT_SCRIPT_FABRIC_ENABLED" --configFileDir "$RCT_SCRIPT_CONFIG_FILE_DIR" --nodeBinary "$NODE_BINARY"
     popd >/dev/null || exit 1
 }
 

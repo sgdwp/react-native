@@ -7,13 +7,7 @@
  * @format
  */
 
-const {
-  parseVersion,
-  isTaggedLatest,
-  getPublishVersion,
-  isReleaseBranch,
-  getPublishTag,
-} = require('../version-utils');
+const {parseVersion, isReleaseBranch} = require('../version-utils');
 
 let execResult = null;
 jest.mock('shelljs', () => ({
@@ -21,6 +15,12 @@ jest.mock('shelljs', () => ({
     return {
       stdout: execResult,
     };
+  },
+  echo: message => {
+    console.log(message);
+  },
+  exit: exitCode => {
+    exit(exitCode);
   },
 }));
 
@@ -34,54 +34,6 @@ describe('version-utils', () => {
     it('should not identify as release branch', () => {
       expect(isReleaseBranch('main')).toBe(false);
       expect(isReleaseBranch('pull/32659')).toBe(false);
-    });
-  });
-  describe('isTaggedLatest', () => {
-    it('it should identify commit as tagged `latest`', () => {
-      execResult = '6c19dc3266b84f47a076b647a1c93b3c3b69d2c5\n';
-      expect(isTaggedLatest('6c19dc3266b84f47a076b647a1c93b3c3b69d2c5')).toBe(
-        true,
-      );
-    });
-    it('it should not identify commit as tagged `latest`', () => {
-      execResult = '6c19dc3266b84f47a076b647a1c93b3c3b69d2c5\n';
-      expect(isTaggedLatest('6c19dc3266b8')).toBe(false);
-    });
-  });
-
-  describe('getPublishTag', () => {
-    it('Should return null no tags are returned', () => {
-      execResult = '\n';
-      expect(getPublishTag()).toBe(null);
-    });
-    it('Should return tag', () => {
-      execResult = 'publish-v999.0.0-rc.0\n';
-      expect(getPublishTag()).toBe('publish-v999.0.0-rc.0');
-    });
-  });
-
-  describe('getPublishVersion', () => {
-    it('Should return null if invalid tag provided', () => {
-      expect(getPublishVersion('')).toBe(null);
-      expect(getPublishVersion('something')).toBe(null);
-    });
-    it('should throw error if invalid tag version provided', () => {
-      function testInvalidVersion() {
-        getPublishVersion('publish-<invalid-version>');
-      }
-      expect(testInvalidVersion).toThrowErrorMatchingInlineSnapshot(
-        `"You must pass a correctly formatted version; couldn't parse <invalid-version>"`,
-      );
-    });
-    it('Should return version for tag', () => {
-      const {version, major, minor, patch, prerelease} = getPublishVersion(
-        'publish-v0.67.0-rc.6',
-      );
-      expect(version).toBe('0.67.0-rc.6');
-      expect(major).toBe('0');
-      expect(minor).toBe('67');
-      expect(patch).toBe('0');
-      expect(prerelease).toBe('rc.6');
     });
   });
 
@@ -123,6 +75,7 @@ describe('version-utils', () => {
       expect(patch).toBe('0');
       expect(prerelease).toBeUndefined();
     });
+
     it('should parse pre-release version from tag', () => {
       const {version, major, minor, patch, prerelease} =
         parseVersion('v0.66.1-rc.4');

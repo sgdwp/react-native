@@ -16,7 +16,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.SeekBar;
 import androidx.annotation.Nullable;
-import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat.AccessibilityActionCompat;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReadableMap;
@@ -150,7 +149,8 @@ public class ReactSliderManager extends SimpleViewManager<ReactSlider>
   @Override
   protected ReactSlider createViewInstance(ThemedReactContext context) {
     final ReactSlider slider = new ReactSlider(context, null, STYLE);
-    ViewCompat.setAccessibilityDelegate(slider, new ReactSliderAccessibilityDelegate());
+    ReactSliderAccessibilityDelegate.setDelegate(
+        slider, slider.isFocusable(), slider.getImportantForAccessibility());
     return slider;
   }
 
@@ -221,12 +221,15 @@ public class ReactSliderManager extends SimpleViewManager<ReactSlider>
   }
 
   @Override
+  @ReactProp(name = "disabled")
   public void setDisabled(ReactSlider view, boolean value) {}
 
   @Override
+  @ReactProp(name = "maximumTrackImage", customType = "ImageSource")
   public void setMaximumTrackImage(ReactSlider view, @Nullable ReadableMap value) {}
 
   @Override
+  @ReactProp(name = "minimumTrackImage", customType = "ImageSource")
   public void setMinimumTrackImage(ReactSlider view, @Nullable ReadableMap value) {}
 
   @Override
@@ -235,9 +238,11 @@ public class ReactSliderManager extends SimpleViewManager<ReactSlider>
   }
 
   @Override
+  @ReactProp(name = "thumbImage", customType = "ImageSource")
   public void setThumbImage(ReactSlider view, @Nullable ReadableMap value) {}
 
   @Override
+  @ReactProp(name = "trackImage", customType = "ImageSource")
   public void setTrackImage(ReactSlider view, @Nullable ReadableMap value) {}
 
   @Override
@@ -255,6 +260,25 @@ public class ReactSliderManager extends SimpleViewManager<ReactSlider>
         MapBuilder.of(
             ReactSlidingCompleteEvent.EVENT_NAME,
             MapBuilder.of("registrationName", "onSlidingComplete")));
+    return eventTypeConstants;
+  }
+
+  @Nullable
+  @Override
+  public Map<String, Object> getExportedCustomBubblingEventTypeConstants() {
+    @Nullable
+    Map<String, Object> baseEventTypeConstants =
+        super.getExportedCustomBubblingEventTypeConstants();
+    Map<String, Object> eventTypeConstants =
+        baseEventTypeConstants == null ? new HashMap<String, Object>() : baseEventTypeConstants;
+    eventTypeConstants.putAll(
+        MapBuilder.<String, Object>builder()
+            .put(
+                "topValueChange",
+                MapBuilder.of(
+                    "phasedRegistrationNames",
+                    MapBuilder.of("bubbled", "onValueChange", "captured", "onValueChangeCapture")))
+            .build());
     return eventTypeConstants;
   }
 
@@ -286,6 +310,11 @@ public class ReactSliderManager extends SimpleViewManager<ReactSlider>
   }
 
   protected class ReactSliderAccessibilityDelegate extends ReactAccessibilityDelegate {
+    public ReactSliderAccessibilityDelegate(
+        final View view, boolean originalFocus, int originalImportantForAccessibility) {
+      super(view, originalFocus, originalImportantForAccessibility);
+    }
+
     private boolean isSliderAction(int action) {
       return (action == AccessibilityActionCompat.ACTION_SCROLL_FORWARD.getId())
           || (action == AccessibilityActionCompat.ACTION_SCROLL_BACKWARD.getId())

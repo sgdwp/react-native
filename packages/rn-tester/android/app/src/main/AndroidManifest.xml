@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest
-  xmlns:android="http://schemas.android.com/apk/res/android"
-  package="com.facebook.react.uiapp">
+  xmlns:android="http://schemas.android.com/apk/res/android">
 
   <uses-feature
     android:name="android.software.leanback"
@@ -59,5 +58,23 @@
       android:exported="false"
     />
   </application>
+  <queries>
+    <package android:name="com.facebook.katana" />
+    <package android:name="com.facebook.lite" />
+    <package android:name="com.facebook.android" />
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <category android:name="android.intent.category.BROWSABLE" />
+      <data android:scheme="https" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:scheme="geo" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.DIAL" />
+      <data android:scheme="tel" />
+    </intent>
+  </queries>
 
 </manifest>

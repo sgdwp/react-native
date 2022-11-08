@@ -7,8 +7,6 @@
  * @format
  */
 
-const {exec} = require('shelljs');
-
 const VERSION_REGEX = /^v?((\d+)\.(\d+)\.(\d+)(?:-(.+))?)$/;
 
 function parseVersion(versionStr) {
@@ -32,42 +30,7 @@ function isReleaseBranch(branch) {
   return branch.endsWith('-stable');
 }
 
-function getBranchName() {
-  return exec('git rev-parse --abbrev-ref HEAD', {
-    silent: true,
-  }).stdout.trim();
-}
-
-function getPublishVersion(tag) {
-  if (!tag.startsWith('publish-')) {
-    return null;
-  }
-
-  const versionStr = tag.replace('publish-', '');
-  return parseVersion(versionStr);
-}
-
-function isTaggedLatest(commitSha) {
-  return (
-    exec(`git rev-list -1 latest | grep ${commitSha}`, {
-      silent: true,
-    }).stdout.trim() === commitSha
-  );
-}
-
-function getPublishTag() {
-  // Assumes we only ever have one tag with the prefix `publish-v`
-  const tag = exec("git tag --points-at HEAD | grep 'publish-v'", {
-    silent: true,
-  }).stdout.trim();
-  return tag ? tag : null;
-}
-
 module.exports = {
-  getBranchName,
-  isTaggedLatest,
-  getPublishTag,
-  getPublishVersion,
   parseVersion,
   isReleaseBranch,
 };

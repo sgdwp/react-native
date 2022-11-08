@@ -99,15 +99,19 @@ public class ReactModalHostManager extends ViewGroupManager<ReactModalHostView>
   }
 
   @Override
+  @ReactProp(name = "presentationStyle")
   public void setPresentationStyle(ReactModalHostView view, @Nullable String value) {}
 
   @Override
+  @ReactProp(name = "animated")
   public void setAnimated(ReactModalHostView view, boolean value) {}
 
   @Override
+  @ReactProp(name = "supportedOrientations")
   public void setSupportedOrientations(ReactModalHostView view, @Nullable ReadableArray value) {}
 
   @Override
+  @ReactProp(name = "identifier")
   public void setIdentifier(ReactModalHostView view, int value) {}
 
   @Override
@@ -146,6 +150,10 @@ public class ReactModalHostManager extends ViewGroupManager<ReactModalHostView>
         MapBuilder.<String, Object>builder()
             .put(RequestCloseEvent.EVENT_NAME, MapBuilder.of("registrationName", "onRequestClose"))
             .put(ShowEvent.EVENT_NAME, MapBuilder.of("registrationName", "onShow"))
+            // iOS only
+            .put("topDismiss", MapBuilder.of("registrationName", "onDismiss"))
+            // iOS only
+            .put("topOrientationChange", MapBuilder.of("registrationName", "onOrientationChange"))
             .build());
     return eventTypeConstants;
   }
@@ -158,7 +166,7 @@ public class ReactModalHostManager extends ViewGroupManager<ReactModalHostView>
 
   @Override
   public Object updateState(
-      ReactModalHostView view, ReactStylesDiffMap props, @Nullable StateWrapper stateWrapper) {
+      ReactModalHostView view, ReactStylesDiffMap props, StateWrapper stateWrapper) {
     view.getFabricViewStateManager().setStateWrapper(stateWrapper);
     Point modalSize = ModalHostHelper.getModalHostSize(view.getContext());
     view.updateState(modalSize.x, modalSize.y);

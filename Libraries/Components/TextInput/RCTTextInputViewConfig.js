@@ -10,8 +10,14 @@
 
 import type {PartialViewConfig} from '../../Renderer/shims/ReactNativeTypes';
 
+import {ConditionallyIgnoredEventHandlers} from '../../NativeComponent/ViewConfigIgnore';
+
+type PartialViewConfigWithoutName = $Rest<
+  PartialViewConfig,
+  {uiViewClassName: string},
+>;
+
 const RCTTextInputViewConfig = {
-  uiViewClassName: 'RCTSinglelineTextInputView',
   bubblingEventTypes: {
     topBlur: {
       phasedRegistrationNames: {
@@ -23,6 +29,12 @@ const RCTTextInputViewConfig = {
       phasedRegistrationNames: {
         bubbled: 'onChange',
         captured: 'onChangeCapture',
+      },
+    },
+    topContentSizeChange: {
+      phasedRegistrationNames: {
+        captured: 'onContentSizeChangeCapture',
+        bubbled: 'onContentSizeChange',
       },
     },
     topEndEditing: {
@@ -69,7 +81,23 @@ const RCTTextInputViewConfig = {
       },
     },
   },
-  directEventTypes: {},
+  directEventTypes: {
+    topTextInput: {
+      registrationName: 'onTextInput',
+    },
+    topKeyPressSync: {
+      registrationName: 'onKeyPressSync',
+    },
+    topScroll: {
+      registrationName: 'onScroll',
+    },
+    topSelectionChange: {
+      registrationName: 'onSelectionChange',
+    },
+    topChangeSync: {
+      registrationName: 'onChangeSync',
+    },
+  },
   validAttributes: {
     fontSize: true,
     fontWeight: true,
@@ -97,23 +125,18 @@ const RCTTextInputViewConfig = {
     caretHidden: true,
     enablesReturnKeyAutomatically: true,
     placeholderTextColor: {process: require('../../StyleSheet/processColor')},
-    onSelectionChange: true,
     clearButtonMode: true,
-    onContentSizeChange: true,
     keyboardType: true,
     selection: true,
     returnKeyType: true,
-    blurOnSubmit: true,
+    submitBehavior: true,
     mostRecentEventCount: true,
-    onChange: true,
     scrollEnabled: true,
     selectionColor: {process: require('../../StyleSheet/processColor')},
     contextMenuHidden: true,
     secureTextEntry: true,
-    onTextInput: true,
     placeholder: true,
     autoCorrect: true,
-    onScroll: true,
     multiline: true,
     textContentType: true,
     maxLength: true,
@@ -124,7 +147,19 @@ const RCTTextInputViewConfig = {
     selectTextOnFocus: true,
     text: true,
     clearTextOnFocus: true,
+    showSoftInputOnFocus: true,
+    autoFocus: true,
+    lineBreakStrategyIOS: true,
+    ...ConditionallyIgnoredEventHandlers({
+      onChange: true,
+      onSelectionChange: true,
+      onContentSizeChange: true,
+      onScroll: true,
+      onChangeSync: true,
+      onKeyPressSync: true,
+      onTextInput: true,
+    }),
   },
 };
 
-module.exports = (RCTTextInputViewConfig: PartialViewConfig);
+module.exports = (RCTTextInputViewConfig: PartialViewConfigWithoutName);

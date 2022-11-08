@@ -8,11 +8,15 @@
  * @format
  */
 
-import type {HostComponent} from '../../Renderer/shims/ReactNativeTypes';
-import codegenNativeCommands from '../../Utilities/codegenNativeCommands';
+import type {
+  HostComponent,
+  PartialViewConfig,
+} from '../../Renderer/shims/ReactNativeTypes';
 import type {TextInputNativeCommands} from './TextInputNativeCommands';
-import RCTTextInputViewConfig from './RCTTextInputViewConfig';
+
 import * as NativeComponentRegistry from '../../NativeComponent/NativeComponentRegistry';
+import codegenNativeCommands from '../../Utilities/codegenNativeCommands';
+import RCTTextInputViewConfig from './RCTTextInputViewConfig';
 
 type NativeType = HostComponent<mixed>;
 
@@ -22,10 +26,19 @@ export const Commands: NativeCommands = codegenNativeCommands<NativeCommands>({
   supportedCommands: ['focus', 'blur', 'setTextAndSelection'],
 });
 
+export const __INTERNAL_VIEW_CONFIG: PartialViewConfig = {
+  uiViewClassName: 'RCTMultilineTextInputView',
+  ...RCTTextInputViewConfig,
+  validAttributes: {
+    ...RCTTextInputViewConfig.validAttributes,
+    dataDetectorTypes: true,
+  },
+};
+
 const MultilineTextInputNativeComponent: HostComponent<mixed> =
   NativeComponentRegistry.get<mixed>(
     'RCTMultilineTextInputView',
-    () => RCTTextInputViewConfig,
+    () => __INTERNAL_VIEW_CONFIG,
   );
 
 // flowlint-next-line unclear-type:off

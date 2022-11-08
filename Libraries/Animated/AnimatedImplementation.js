@@ -10,33 +10,33 @@
 
 'use strict';
 
-const {AnimatedEvent, attachNativeEvent} = require('./AnimatedEvent');
-const AnimatedAddition = require('./nodes/AnimatedAddition');
-const AnimatedDiffClamp = require('./nodes/AnimatedDiffClamp');
-const AnimatedDivision = require('./nodes/AnimatedDivision');
-const AnimatedInterpolation = require('./nodes/AnimatedInterpolation');
-const AnimatedModulo = require('./nodes/AnimatedModulo');
-const AnimatedMultiplication = require('./nodes/AnimatedMultiplication');
-const AnimatedNode = require('./nodes/AnimatedNode');
-const AnimatedSubtraction = require('./nodes/AnimatedSubtraction');
-const AnimatedTracking = require('./nodes/AnimatedTracking');
-const AnimatedValue = require('./nodes/AnimatedValue');
-const AnimatedValueXY = require('./nodes/AnimatedValueXY');
-const DecayAnimation = require('./animations/DecayAnimation');
-const SpringAnimation = require('./animations/SpringAnimation');
-const TimingAnimation = require('./animations/TimingAnimation');
-
-const createAnimatedComponent = require('./createAnimatedComponent');
-
+import type {EventConfig, Mapping} from './AnimatedEvent';
 import type {
   AnimationConfig,
   EndCallback,
   EndResult,
 } from './animations/Animation';
-import type {TimingAnimationConfig} from './animations/TimingAnimation';
 import type {DecayAnimationConfig} from './animations/DecayAnimation';
 import type {SpringAnimationConfig} from './animations/SpringAnimation';
-import type {Mapping, EventConfig} from './AnimatedEvent';
+import type {TimingAnimationConfig} from './animations/TimingAnimation';
+
+import {AnimatedEvent, attachNativeEvent} from './AnimatedEvent';
+import DecayAnimation from './animations/DecayAnimation';
+import SpringAnimation from './animations/SpringAnimation';
+import TimingAnimation from './animations/TimingAnimation';
+import createAnimatedComponent from './createAnimatedComponent';
+import AnimatedAddition from './nodes/AnimatedAddition';
+import AnimatedColor from './nodes/AnimatedColor';
+import AnimatedDiffClamp from './nodes/AnimatedDiffClamp';
+import AnimatedDivision from './nodes/AnimatedDivision';
+import AnimatedInterpolation from './nodes/AnimatedInterpolation';
+import AnimatedModulo from './nodes/AnimatedModulo';
+import AnimatedMultiplication from './nodes/AnimatedMultiplication';
+import AnimatedNode from './nodes/AnimatedNode';
+import AnimatedSubtraction from './nodes/AnimatedSubtraction';
+import AnimatedTracking from './nodes/AnimatedTracking';
+import AnimatedValue from './nodes/AnimatedValue';
+import AnimatedValueXY from './nodes/AnimatedValueXY';
 
 export type CompositeAnimation = {
   start: (callback?: ?EndCallback) => void,
@@ -89,10 +89,10 @@ const diffClamp = function (
 
 const _combineCallbacks = function (
   callback: ?EndCallback,
-  config: {...AnimationConfig, ...},
+  config: $ReadOnly<{...AnimationConfig, ...}>,
 ) {
   if (callback && config.onComplete) {
-    return (...args) => {
+    return (...args: Array<EndResult>) => {
       config.onComplete && config.onComplete(...args);
       callback && callback(...args);
     };
@@ -102,7 +102,7 @@ const _combineCallbacks = function (
 };
 
 const maybeVectorAnim = function (
-  value: AnimatedValue | AnimatedValueXY,
+  value: AnimatedValue | AnimatedValueXY | AnimatedColor,
   config: Object,
   anim: (value: AnimatedValue, config: Object) => CompositeAnimation,
 ): ?CompositeAnimation {
@@ -121,16 +121,42 @@ const maybeVectorAnim = function (
     // We use `stopTogether: false` here because otherwise tracking will break
     // because the second animation will get stopped before it can update.
     return parallel([aX, aY], {stopTogether: false});
+  } else if (value instanceof AnimatedColor) {
+    const configR = {...config};
+    const configG = {...config};
+    const configB = {...config};
+    const configA = {...config};
+    for (const key in config) {
+      const {r, g, b, a} = config[key];
+      if (
+        r !== undefined &&
+        g !== undefined &&
+        b !== undefined &&
+        a !== undefined
+      ) {
+        configR[key] = r;
+        configG[key] = g;
+        configB[key] = b;
+        configA[key] = a;
+      }
+    }
+    const aR = anim((value: AnimatedColor).r, configR);
+    const aG = anim((value: AnimatedColor).g, configG);
+    const aB = anim((value: AnimatedColor).b, configB);
+    const aA = anim((value: AnimatedColor).a, configA);
+    // We use `stopTogether: false` here because otherwise tracking will break
+    // because the second animation will get stopped before it can update.
+    return parallel([aR, aG, aB, aA], {stopTogether: false});
   }
   return null;
 };
 
 const spring = function (
-  value: AnimatedValue | AnimatedValueXY,
+  value: AnimatedValue | AnimatedValueXY | AnimatedColor,
   config: SpringAnimationConfig,
 ): CompositeAnimation {
   const start = function (
-    animatedValue: AnimatedValue | AnimatedValueXY,
+    animatedValue: AnimatedValue | AnimatedValueXY | AnimatedColor,
     configuration: SpringAnimationConfig,
     callback?: ?EndCallback,
   ): void {
@@ -179,11 +205,11 @@ const spring = function (
 };
 
 const timing = function (
-  value: AnimatedValue | AnimatedValueXY,
+  value: AnimatedValue | AnimatedValueXY | AnimatedColor,
   config: TimingAnimationConfig,
 ): CompositeAnimation {
   const start = function (
-    animatedValue: AnimatedValue | AnimatedValueXY,
+    animatedValue: AnimatedValue | AnimatedValueXY | AnimatedColor,
     configuration: TimingAnimationConfig,
     callback?: ?EndCallback,
   ): void {
@@ -233,11 +259,11 @@ const timing = function (
 };
 
 const decay = function (
-  value: AnimatedValue | AnimatedValueXY,
+  value: AnimatedValue | AnimatedValueXY | AnimatedColor,
   config: DecayAnimationConfig,
 ): CompositeAnimation {
   const start = function (
-    animatedValue: AnimatedValue | AnimatedValueXY,
+    animatedValue: AnimatedValue | AnimatedValueXY | AnimatedColor,
     configuration: DecayAnimationConfig,
     callback?: ?EndCallback,
   ): void {
@@ -280,7 +306,7 @@ const sequence = function (
   let current = 0;
   return {
     start: function (callback?: ?EndCallback) {
-      const onComplete = function (result) {
+      const onComplete = function (result: EndResult) {
         if (!result.finished) {
           callback && callback(result);
           return;
@@ -341,7 +367,7 @@ const parallel = function (
 ): CompositeAnimation {
   let doneCount = 0;
   // Make sure we only call stop() at most once for each animation
-  const hasEnded = {};
+  const hasEnded: {[number]: boolean} = {};
   const stopTogether = !(config && config.stopTogether === false);
 
   const result = {
@@ -352,7 +378,7 @@ const parallel = function (
       }
 
       animations.forEach((animation, idx) => {
-        const cb = function (endResult) {
+        const cb = function (endResult: EndResult | {finished: boolean}) {
           hasEnded[idx] = true;
           doneCount++;
           if (doneCount === animations.length) {
@@ -389,7 +415,7 @@ const parallel = function (
       });
     },
 
-    _startNativeLoop: function () {
+    _startNativeLoop: function (): empty {
       throw new Error(
         'Loops run using the native driver cannot contain Animated.parallel animations',
       );
@@ -432,6 +458,7 @@ type LoopAnimationConfig = {
 
 const loop = function (
   animation: CompositeAnimation,
+  // $FlowFixMe[prop-missing]
   {iterations = -1, resetBeforeIteration = true}: LoopAnimationConfig = {},
 ): CompositeAnimation {
   let isFinished = false;
@@ -523,6 +550,19 @@ const event = function (
   }
 };
 
+// All types of animated nodes that represent scalar numbers and can be interpolated (etc)
+type AnimatedNumeric =
+  | AnimatedAddition
+  | AnimatedDiffClamp
+  | AnimatedDivision
+  | AnimatedInterpolation<number>
+  | AnimatedModulo
+  | AnimatedMultiplication
+  | AnimatedSubtraction
+  | AnimatedValue;
+
+export type {AnimatedNumeric as Numeric};
+
 /**
  * The `Animated` library is designed to make animations fluid, powerful, and
  * easy to build and maintain. `Animated` focuses on declarative relationships
@@ -533,7 +573,7 @@ const event = function (
  *
  * See https://reactnative.dev/docs/animated
  */
-module.exports = {
+export default {
   /**
    * Standard value class for driving animations.  Typically initialized with
    * `new Animated.Value(0);`
@@ -547,6 +587,10 @@ module.exports = {
    * See https://reactnative.dev/docs/animatedvaluexy
    */
   ValueXY: AnimatedValueXY,
+  /**
+   * Value class for driving color animations.
+   */
+  Color: AnimatedColor,
   /**
    * Exported to use the Interpolation type in flow.
    *

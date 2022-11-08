@@ -5,12 +5,14 @@
  * LICENSE file in the root directory of this source tree.
  *
  * @format
- * @emails oncall+react_native
+ * @oncall react_native
  */
 
-import AnimatedProps from '../nodes/AnimatedProps';
-import TestRenderer from 'react-test-renderer';
 import * as React from 'react';
+import TestRenderer from 'react-test-renderer';
+
+let Animated = require('../Animated').default;
+let AnimatedProps = require('../nodes/AnimatedProps').default;
 
 jest.mock('../../BatchedBridge/NativeModules', () => ({
   NativeAnimatedModule: {},
@@ -21,8 +23,6 @@ jest.mock('../../BatchedBridge/NativeModules', () => ({
   },
 }));
 
-let Animated = require('../Animated');
-
 describe('Animated tests', () => {
   beforeEach(() => {
     jest.resetModules();
@@ -31,6 +31,10 @@ describe('Animated tests', () => {
   describe('Animated', () => {
     it('works end to end', () => {
       const anim = new Animated.Value(0);
+      const translateAnim = anim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [100, 200],
+      });
 
       const callback = jest.fn();
 
@@ -41,10 +45,10 @@ describe('Animated tests', () => {
             opacity: anim,
             transform: [
               {
-                translateX: anim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [100, 200],
-                }),
+                translate: [translateAnim, translateAnim],
+              },
+              {
+                translateX: translateAnim,
               },
               {scale: anim},
             ],
@@ -61,7 +65,7 @@ describe('Animated tests', () => {
         style: {
           backgroundColor: 'red',
           opacity: 0,
-          transform: [{translateX: 100}, {scale: 0}],
+          transform: [{translate: [100, 100]}, {translateX: 100}, {scale: 0}],
           shadowOffset: {
             width: 0,
             height: 0,
@@ -83,7 +87,7 @@ describe('Animated tests', () => {
         style: {
           backgroundColor: 'red',
           opacity: 0.5,
-          transform: [{translateX: 150}, {scale: 0.5}],
+          transform: [{translate: [150, 150]}, {translateX: 150}, {scale: 0.5}],
           shadowOffset: {
             width: 0.5,
             height: 0.5,
@@ -692,7 +696,7 @@ describe('Animated tests', () => {
 
     beforeEach(() => {
       jest.mock('../../Interaction/InteractionManager');
-      Animated = require('../Animated');
+      Animated = require('../Animated').default;
       InteractionManager = require('../../Interaction/InteractionManager');
     });
 
@@ -780,6 +784,19 @@ describe('Animated tests', () => {
         useNativeDriver: false,
       }).start();
       value1.setValue(1492);
+      expect(value2.__getValue()).toBe(7);
+    });
+
+    it('should start tracking immediately on animation start', () => {
+      const value1 = new Animated.Value(42);
+      const value2 = new Animated.Value(0);
+      Animated.timing(value2, {
+        toValue: value1,
+        duration: 0,
+        useNativeDriver: false,
+      }).start();
+      expect(value2.__getValue()).toBe(42);
+      value1.setValue(7);
       expect(value2.__getValue()).toBe(7);
     });
   });
@@ -957,6 +974,117 @@ describe('Animated tests', () => {
         value.setValue(inputValues[i]);
         expect(diffClampValue.__getValue()).toBe(expectedValues[i]);
       }
+    });
+  });
+
+  describe('Animated Colors', () => {
+    it('should normalize colors', () => {
+      let color = new Animated.Color();
+      expect(color.__getValue()).toEqual('rgba(0, 0, 0, 1)');
+
+      color = new Animated.Color({r: 11, g: 22, b: 33, a: 1.0});
+      expect(color.__getValue()).toEqual('rgba(11, 22, 33, 1)');
+
+      color = new Animated.Color('rgba(255, 0, 0, 1.0)');
+      expect(color.__getValue()).toEqual('rgba(255, 0, 0, 1)');
+
+      color = new Animated.Color('#ff0000ff');
+      expect(color.__getValue()).toEqual('rgba(255, 0, 0, 1)');
+
+      color = new Animated.Color('red');
+      expect(color.__getValue()).toEqual('rgba(255, 0, 0, 1)');
+
+      color = new Animated.Color({
+        r: new Animated.Value(255),
+        g: new Animated.Value(0),
+        b: new Animated.Value(0),
+        a: new Animated.Value(1.0),
+      });
+      expect(color.__getValue()).toEqual('rgba(255, 0, 0, 1)');
+
+      color = new Animated.Color('unknown');
+      expect(color.__getValue()).toEqual('rgba(0, 0, 0, 1)');
+
+      color = new Animated.Color({key: 'value'});
+      expect(color.__getValue()).toEqual('rgba(0, 0, 0, 1)');
+    });
+
+    it('should animate colors', () => {
+      const color = new Animated.Color({r: 255, g: 0, b: 0, a: 1.0});
+      const callback = jest.fn();
+      const node = new AnimatedProps(
+        {
+          style: {
+            backgroundColor: color,
+            transform: [
+              {
+                scale: color.a.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [1, 2],
+                }),
+              },
+            ],
+          },
+        },
+        callback,
+      );
+
+      expect(node.__getValue()).toEqual({
+        style: {
+          backgroundColor: 'rgba(255, 0, 0, 1)',
+          transform: [{scale: 2}],
+        },
+      });
+
+      node.__attach();
+      expect(callback.mock.calls.length).toBe(0);
+
+      color.setValue({r: 11, g: 22, b: 33, a: 0.5});
+      expect(callback.mock.calls.length).toBe(4);
+      expect(node.__getValue()).toEqual({
+        style: {
+          backgroundColor: 'rgba(11, 22, 33, 0.5)',
+          transform: [{scale: 1.5}],
+        },
+      });
+
+      node.__detach();
+      color.setValue({r: 255, g: 0, b: 0, a: 1.0});
+      expect(callback.mock.calls.length).toBe(4);
+    });
+
+    it('should track colors', () => {
+      const color1 = new Animated.Color();
+      const color2 = new Animated.Color();
+      Animated.timing(color2, {
+        toValue: color1,
+        duration: 0,
+        useNativeDriver: false,
+      }).start();
+      color1.setValue({r: 11, g: 22, b: 33, a: 0.5});
+      expect(color2.__getValue()).toEqual('rgba(11, 22, 33, 0.5)');
+
+      // Make sure tracking keeps working (see stopTogether in ParallelConfig used
+      // by maybeVectorAnim).
+      color1.setValue({r: 255, g: 0, b: 0, a: 1.0});
+      expect(color2.__getValue()).toEqual('rgba(255, 0, 0, 1)');
+    });
+
+    it('should track with springs', () => {
+      const color1 = new Animated.Color();
+      const color2 = new Animated.Color();
+      Animated.spring(color2, {
+        toValue: color1,
+        tension: 3000, // faster spring for faster test
+        friction: 60,
+        useNativeDriver: false,
+      }).start();
+      color1.setValue({r: 11, g: 22, b: 33, a: 0.5});
+      jest.runAllTimers();
+      expect(color2.__getValue()).toEqual('rgba(11, 22, 33, 0.5)');
+      color1.setValue({r: 44, g: 55, b: 66, a: 0.0});
+      jest.runAllTimers();
+      expect(color2.__getValue()).toEqual('rgba(44, 55, 66, 0)');
     });
   });
 });
